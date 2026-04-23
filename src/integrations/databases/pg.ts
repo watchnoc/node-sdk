@@ -1,6 +1,6 @@
-import { getClient, Context } from '../index.js';
-import { stripBindings, extractOperation, extractTable } from './db-utils.js';
-import { trackForNPlusOne } from './nplusone.js';
+import { getClient, Context } from '../../index.js';
+import { stripBindings, extractOperation, extractTable } from '../common/db-utils.js';
+import { trackForNPlusOne } from '../common/nplusone.js';
 
 export function instrumentPg(pool: any): any {
   const originalConnect = pool.connect.bind(pool);
