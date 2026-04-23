@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 
-import { WatchnocError } from '../errors';
+import { WatchnocError } from '../core/errors.js';
 
 const nodeRequire = createRequire(typeof __filename !== 'undefined' ? __filename : importMetaUrl());
 
