@@ -1,4 +1,4 @@
-import { WatchnocContextStore, generateRequestId, parseTraceparent } from '../context';
+import { WatchnocContextStore, generateRequestId, parseTraceparent } from '../../core/context.js';
 
 export type FastifyPluginOptions = {
   environment?: string;
