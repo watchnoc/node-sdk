@@ -1,5 +1,5 @@
-import type { RedactPattern } from './redact';
-import type { WatchnocError } from './errors';
+import type { RedactPattern } from '../utils/redact.js';
+import type { WatchnocError } from './errors.js';
 
 export type WatchnocConfig = {
   apiKey: string;
