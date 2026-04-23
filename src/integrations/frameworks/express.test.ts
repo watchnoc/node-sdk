@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { WatchnocContextStore } from '../context';
-import { WatchnocExpressMiddleware } from './express';
+import { WatchnocContextStore } from '../../core/context.js';
+import { WatchnocExpressMiddleware } from './express.js';
 
 describe('WatchnocExpressMiddleware', () => {
   it('sets requestId from header and stores it in context', () => {
