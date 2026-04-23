@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EventQueue } from './queue';
+import { EventQueue } from './queue.js';
 
 describe('EventQueue', () => {
   it('drops oldest when full', () => {
