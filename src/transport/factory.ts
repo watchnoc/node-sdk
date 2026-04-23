@@ -1,8 +1,8 @@
-import type { WatchnocConfig } from '../config';
+import type { WatchnocConfig } from '../core/config.js';
 
-import { GrpcTransport } from './grpc';
-import { HttpTransport } from './http';
-import type { Transport } from './interface';
+import { GrpcTransport } from './grpc.js';
+import { HttpTransport } from './http.js';
+import type { Transport } from './interface.js';
 
 export function createTransports(cfg: WatchnocConfig): { primary: Transport; fallback?: Transport } {
   if (cfg.transport === 'http') {
