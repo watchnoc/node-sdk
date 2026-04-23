@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
-import { WatchnocContextStore, generateRequestId, parseTraceparent } from '../context';
+import { WatchnocContextStore, generateRequestId, parseTraceparent } from '../../core/context.js';
 
 export function WatchnocHttpHandler(
   handler: (req: IncomingMessage, res: ServerResponse) => void,
