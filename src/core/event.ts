@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { WatchnocContext } from './context.js';
-import { defaultRedactPatterns, redactMetadata, redactString, type RedactPattern } from './redact.js';
+import { defaultRedactPatterns, redactMetadata, redactString, type RedactPattern } from '../utils/redact.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
