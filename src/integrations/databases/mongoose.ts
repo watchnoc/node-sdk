@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Context } from '../index.js';
+import { Context } from '../../index.js';
 
 export function instrumentMongoose(): void {
   const originalExec = mongoose.Query.prototype.exec;
