@@ -1,4 +1,4 @@
-import type { WatchnocClient } from '../client';
+import type { WatchnocClient } from '../core/client.js';
 
 export interface Instrumentation {
   name: string;
