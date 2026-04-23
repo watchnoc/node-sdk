@@ -1,7 +1,7 @@
 import dc from 'node:diagnostics_channel';
-import type { WatchnocClient } from '../client';
-import type { Instrumentation } from './registry';
-import { WatchnocContextStore } from '../context';
+import type { WatchnocClient } from '../core/client.js';
+import type { Instrumentation } from './registry.js';
+import { WatchnocContextStore } from '../core/context.js';
 
 export class HttpInstrumentation implements Instrumentation {
   readonly name = 'http';
