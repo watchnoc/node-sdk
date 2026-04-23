@@ -4,10 +4,10 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import protobuf from 'protobufjs';
 
-import { WatchnocError } from '../errors';
-import type { LogEvent } from '../event';
+import { WatchnocError } from '../errors.js';
+import type { LogEvent } from '../event.js';
 
-import type { SendOptions, Transport } from './interface';
+import type { SendOptions, Transport } from './interface.js';
 
 const require = createRequire(import.meta.url);
 
@@ -281,6 +281,11 @@ function createProtoCodec(): {
     const withIngestion: any = { ...e };
     if (!withIngestion.ingestion_type) {
       withIngestion.ingestion_type = 'grpc';
+    }
+    if (e.timestamp_unix_ms) {
+      const seconds = Math.floor(e.timestamp_unix_ms / 1000);
+      const nanos = (e.timestamp_unix_ms % 1000) * 1e6;
+      withIngestion.timestamp = { seconds, nanos };
     }
     const msg = logEvent.fromObject(withIngestion);
     return Buffer.from(logEvent.encode(msg).finish());
