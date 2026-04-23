@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripBindings, extractOperation, extractTable, sanitizeFilter } from './db-utils';
+import { stripBindings, extractOperation, extractTable, sanitizeFilter } from './db-utils.js';
 
 describe('db-utils', () => {
   describe('stripBindings', () => {
