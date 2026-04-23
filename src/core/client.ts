@@ -3,14 +3,14 @@ import type { WatchnocContext } from './context.js';
 import { loadConfig, type WatchnocConfig } from './config.js';
 import { WatchnocError } from './errors.js';
 import { buildLogEvent, type LogMeta, type LogLevel, type LogEvent } from './event.js';
-import { defaultRedactPatterns, redactString, type RedactPattern } from './redact.js';
-import { uploadReplayChunk, type ReplayChunk } from './replay/upload.js';
-import { QueueFlusher } from './queue/flusher.js';
-import { EventQueue } from './queue/queue.js';
-import { createTransports } from './transport/factory.js';
-import type { Transport } from './transport/interface.js';
-import { registry } from './instrumentation/registry.js';
-import { HttpInstrumentation } from './instrumentation/http.js';
+import { redactString, type RedactPattern, defaultRedactPatterns } from '../utils/redact.js';
+import { uploadReplayChunk, type ReplayChunk } from '../replay/upload.js';
+import { QueueFlusher } from '../queue/flusher.js';
+import { EventQueue } from '../queue/queue.js';
+import { createTransports } from '../transport/factory.js';
+import type { Transport } from '../transport/interface.js';
+import { registry } from '../instrumentation/registry.js';
+import { HttpInstrumentation } from '../instrumentation/http.js';
 
 export type WatchnocClientOptions = Partial<WatchnocConfig> & { apiKey: string };
 
