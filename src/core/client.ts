@@ -11,6 +11,7 @@ import { createTransports } from '../transport/factory.js';
 import type { Transport } from '../transport/interface.js';
 import { registry } from '../instrumentation/registry.js';
 import { HttpInstrumentation } from '../instrumentation/http.js';
+import { captureSourceLocation } from '../utils/stack-trace.js';
 
 export type WatchnocClientOptions = Partial<WatchnocConfig> & { apiKey: string };
 
@@ -137,6 +138,20 @@ export class WatchnocClient {
     // Remove extracted fields from finalMeta
     const { tags, file, lineNumber, functionName, line_number, function_name, ...finalMeta } = mergedMeta as any;
 
+    let finalFile = typeof rawFile === 'string' ? rawFile : undefined;
+    let finalLineNumber = typeof rawLineNumber === 'number' ? rawLineNumber : (typeof rawLineNumber === 'string' ? parseInt(rawLineNumber, 10) : undefined);
+    let finalFunctionName = typeof rawFunctionName === 'string' ? rawFunctionName : undefined;
+
+    // Auto-capture source if missing
+    if (!finalFile || !finalLineNumber) {
+      const location = captureSourceLocation();
+      if (location) {
+        finalFile = finalFile || location.file;
+        finalLineNumber = finalLineNumber || location.lineNumber;
+        finalFunctionName = finalFunctionName || location.functionName;
+      }
+    }
+
     const ev = buildLogEvent({
       level,
       message,
@@ -150,9 +165,9 @@ export class WatchnocClient {
       ingestionType: this.cfg.transport === 'http' ? 'http' : 'grpc',
       redactPatterns: this.cfg.redact ? this.patterns : [],
       tags: parseTags(rawTags),
-      file: typeof rawFile === 'string' ? rawFile : undefined,
-      lineNumber: typeof rawLineNumber === 'number' ? rawLineNumber : (typeof rawLineNumber === 'string' ? parseInt(rawLineNumber, 10) : undefined),
-      functionName: typeof rawFunctionName === 'string' ? rawFunctionName : undefined,
+      file: finalFile,
+      lineNumber: finalLineNumber,
+      functionName: finalFunctionName,
     });
 
     const res = this.flusher.enqueue(ev);
