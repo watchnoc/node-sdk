@@ -1,8 +1,8 @@
-import { WatchnocError } from '../errors';
-import type { LogEvent } from '../event';
+import { WatchnocError } from '../core/errors.js';
+import type { LogEvent } from '../core/event.js';
 
-import type { SendOptions, Transport } from './interface';
-import { getFetch } from './fetch';
+import type { SendOptions, Transport } from './interface.js';
+import { getFetch } from './fetch.js';
 
 export type HttpTransportOptions = {
   apiKey: string;
