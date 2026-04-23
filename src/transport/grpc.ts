@@ -4,8 +4,8 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import protobuf from 'protobufjs';
 
-import { WatchnocError } from '../errors.js';
-import type { LogEvent } from '../event.js';
+import { WatchnocError } from '../core/errors.js';
+import type { LogEvent } from '../core/event.js';
 
 import type { SendOptions, Transport } from './interface.js';
 
