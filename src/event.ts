@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import type { WatchnocContext } from './context';
-import type { RedactPattern } from './redact';
-import { defaultRedactPatterns, redactMetadata, redactString } from './redact';
+import type { WatchnocContext } from './context.js';
+import { defaultRedactPatterns, redactMetadata, redactString, type RedactPattern } from './redact.js';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -32,6 +31,10 @@ export type LogEvent = {
   error_hash?: string;
   ingestion_type?: string;
   metadata?: Record<string, string>;
+  file?: string;
+  line_number?: number;
+  function_name?: string;
+  tags?: string[];
 };
 
 export type BuildLogEventOptions = {
@@ -47,6 +50,10 @@ export type BuildLogEventOptions = {
   runtime?: string;
   ingestionType: 'grpc' | 'http';
   redactPatterns?: RedactPattern[];
+  file?: string;
+  lineNumber?: number;
+  functionName?: string;
+  tags?: string[];
 };
 
 export function buildLogEvent(opts: BuildLogEventOptions): LogEvent {
@@ -82,6 +89,11 @@ export function buildLogEvent(opts: BuildLogEventOptions): LogEvent {
     const m = normalizeMeta(opts.meta);
     ev.metadata = redactMetadata(m, patterns);
   }
+
+  setStr(ev, 'file', opts.file);
+  setStr(ev, 'function_name', opts.functionName);
+  if (opts.lineNumber) ev.line_number = opts.lineNumber;
+  if (opts.tags && opts.tags.length > 0) ev.tags = opts.tags;
 
   return ev;
 }
