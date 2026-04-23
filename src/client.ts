@@ -1,16 +1,16 @@
-import { WatchnocContextStore } from './context';
-import type { WatchnocContext } from './context';
-import { loadConfig, type WatchnocConfig } from './config';
-import { WatchnocError } from './errors';
-import { buildLogEvent, type LogMeta, type LogLevel, type LogEvent } from './event';
-import { defaultRedactPatterns, redactString, type RedactPattern } from './redact';
-import { uploadReplayChunk, type ReplayChunk } from './replay/upload';
-import { QueueFlusher } from './queue/flusher';
-import { EventQueue } from './queue/queue';
-import { createTransports } from './transport/factory';
-import type { Transport } from './transport/interface';
-import { registry } from './instrumentation/registry';
-import { HttpInstrumentation } from './instrumentation/http';
+import { WatchnocContextStore } from './context.js';
+import type { WatchnocContext } from './context.js';
+import { loadConfig, type WatchnocConfig } from './config.js';
+import { WatchnocError } from './errors.js';
+import { buildLogEvent, type LogMeta, type LogLevel, type LogEvent } from './event.js';
+import { defaultRedactPatterns, redactString, type RedactPattern } from './redact.js';
+import { uploadReplayChunk, type ReplayChunk } from './replay/upload.js';
+import { QueueFlusher } from './queue/flusher.js';
+import { EventQueue } from './queue/queue.js';
+import { createTransports } from './transport/factory.js';
+import type { Transport } from './transport/interface.js';
+import { registry } from './instrumentation/registry.js';
+import { HttpInstrumentation } from './instrumentation/http.js';
 
 export type WatchnocClientOptions = Partial<WatchnocConfig> & { apiKey: string };
 
@@ -126,7 +126,16 @@ export class WatchnocClient {
     const ctx = WatchnocContextStore.get();
     
     // Merge Global Tags
-    const finalMeta = { ...this.cfg.globalTags, ...meta };
+    const mergedMeta = { ...this.cfg.globalTags, ...meta };
+    
+    // Extract special fields (handle both camelCase and snake_case)
+    const rawTags = mergedMeta.tags ?? (mergedMeta as any).tags;
+    const rawFile = mergedMeta.file ?? (mergedMeta as any).file;
+    const rawLineNumber = mergedMeta.lineNumber ?? mergedMeta.line_number ?? (mergedMeta as any).lineNumber ?? (mergedMeta as any).line_number;
+    const rawFunctionName = mergedMeta.functionName ?? mergedMeta.function_name ?? (mergedMeta as any).functionName ?? (mergedMeta as any).function_name;
+
+    // Remove extracted fields from finalMeta
+    const { tags, file, lineNumber, functionName, line_number, function_name, ...finalMeta } = mergedMeta as any;
 
     const ev = buildLogEvent({
       level,
@@ -140,6 +149,10 @@ export class WatchnocClient {
       runtime: 'node',
       ingestionType: this.cfg.transport === 'http' ? 'http' : 'grpc',
       redactPatterns: this.cfg.redact ? this.patterns : [],
+      tags: parseTags(rawTags),
+      file: typeof rawFile === 'string' ? rawFile : undefined,
+      lineNumber: typeof rawLineNumber === 'number' ? rawLineNumber : (typeof rawLineNumber === 'string' ? parseInt(rawLineNumber, 10) : undefined),
+      functionName: typeof rawFunctionName === 'string' ? rawFunctionName : undefined,
     });
 
     const res = this.flusher.enqueue(ev);
@@ -149,4 +162,10 @@ export class WatchnocClient {
       } catch {}
     }
   }
+}
+
+function parseTags(v: unknown): string[] | undefined {
+  if (Array.isArray(v)) return v.map(String);
+  if (typeof v === 'string') return v.split(',').map((s) => s.trim()).filter(Boolean);
+  return undefined;
 }
