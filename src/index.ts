@@ -1,5 +1,5 @@
-import { WatchnocClient, type WatchnocClientOptions } from './client.js';
-import type { LogMeta as Meta } from './event.js';
+import { WatchnocClient, type WatchnocClientOptions } from './core/client.js';
+import type { LogMeta as Meta } from './core/event.js';
 
 let defaultClient: WatchnocClient | null = null;
 
@@ -55,22 +55,22 @@ export function getClient(): WatchnocClient {
   return defaultClient;
 }
 
-export { WatchnocClient } from './client.js';
-export type { WatchnocClientOptions } from './client.js';
-export type { WatchnocConfig } from './config.js';
-export type { LogMeta as Meta } from './event.js';
-export type { LogEvent, LogLevel } from './event.js';
-export { WatchnocContextStore as Context, parseTraceparent } from './context.js';
-export { generateRequestId, generateSessionId } from './context.js';
-export { watchnocExpressMiddleware as watchnocMiddleware } from './integrations/express.js';
-export { watchnocFastifyPlugin as watchnocPlugin } from './integrations/fastify.js';
-export { WatchnocMiddleware } from './integrations/nestjs.js';
-export { watchnocHttpHandler } from './integrations/http.js';
-export { instrumentPrisma } from './integrations/prisma.js';
-export { watchnocDrizzleLogger } from './integrations/drizzle.js';
-export { WatchnocTypeORMLogger } from './integrations/typeorm.js';
-export { instrumentPg } from './integrations/pg.js';
-export { instrumentMongoDB } from './integrations/mongodb.js';
-export { instrumentMongoose } from './integrations/mongoose.js';
+export { WatchnocClient } from './core/client.js';
+export type { WatchnocClientOptions } from './core/client.js';
+export type { WatchnocConfig } from './core/config.js';
+export type { LogMeta as Meta } from './core/event.js';
+export type { LogEvent, LogLevel } from './core/event.js';
+export { WatchnocContextStore as Context, parseTraceparent } from './core/context.js';
+export { generateRequestId, generateSessionId } from './core/context.js';
+export { watchnocExpressMiddleware as watchnocMiddleware } from './integrations/frameworks/express.js';
+export { watchnocFastifyPlugin as watchnocPlugin } from './integrations/frameworks/fastify.js';
+export { WatchnocMiddleware } from './integrations/frameworks/nestjs.js';
+export { watchnocHttpHandler } from './integrations/frameworks/http.js';
+export { instrumentPrisma } from './integrations/databases/prisma.js';
+export { watchnocDrizzleLogger } from './integrations/databases/drizzle.js';
+export { WatchnocTypeORMLogger } from './integrations/databases/typeorm.js';
+export { instrumentPg } from './integrations/databases/pg.js';
+export { instrumentMongoDB } from './integrations/databases/mongodb.js';
+export { instrumentMongoose } from './integrations/databases/mongoose.js';
 export { uploadReplayChunk } from './replay/upload.js';
-export { defaultRedactPatterns } from './redact';
+export { defaultRedactPatterns } from './utils/redact.js';
