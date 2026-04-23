@@ -1,4 +1,4 @@
-import { getClient } from '../index.js';
+import { getClient } from '../../index.js';
 
 /**
  * Interface for query fingerprinting.
