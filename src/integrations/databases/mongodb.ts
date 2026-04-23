@@ -1,5 +1,5 @@
-import { getClient, Context } from '../index.js';
-import { sanitizeFilter } from './db-utils.js';
+import { getClient, Context } from '../../index.js';
+import { sanitizeFilter } from '../common/db-utils.js';
 import { trackForNPlusOne } from './mongodb-nplus1.js';
 
 export interface WatchnocMongoConfig {
