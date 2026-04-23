@@ -1,10 +1,10 @@
-import { WatchnocError, isRetryableKind } from '../errors';
+import { WatchnocError, isRetryableKind } from '../core/errors.js';
 
-import type { LogEvent } from '../event';
-import type { WatchnocConfig } from '../config';
-import type { Transport } from '../transport/interface';
+import type { LogEvent } from '../core/event.js';
+import type { WatchnocConfig } from '../core/config.js';
+import type { Transport } from '../transport/interface.js';
 
-import { EventQueue } from './queue';
+import { EventQueue } from './queue.js';
 
 export type FlusherOptions = {
   queue: EventQueue<LogEvent>;
@@ -83,8 +83,6 @@ export class QueueFlusher {
       if (this.cfg.debug) {
         process.stderr.write(`[watchnoc] error during shutdown: ${err}\n`);
       }
-    } finally {
-      this.client.close();
     }
   }
 

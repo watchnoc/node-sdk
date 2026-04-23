@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadConfig } from '../config';
-import type { LogEvent } from '../event';
-import type { Transport } from '../transport/interface';
+import { loadConfig } from '../core/config.js';
+import type { LogEvent } from '../core/event.js';
+import type { Transport } from '../transport/interface.js';
 
-import { QueueFlusher } from './flusher';
-import { EventQueue } from './queue';
+import { QueueFlusher } from './flusher.js';
+import { EventQueue } from './queue.js';
 
 describe('QueueFlusher', () => {
   it('unrefs the interval timer', () => {
