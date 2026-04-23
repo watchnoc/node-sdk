@@ -33,7 +33,7 @@
     "@grpc/grpc-js": "^1.10.0",
     "@opentelemetry/api-logs": "^0.214.0",
     "@opentelemetry/sdk-logs": "^0.214.0",
-    "@watchnoc/proto": "file:../../../watchnoc/proto",
+    "@watchnoc/proto": "git+https://github.com/watchnoc/proto.git",
     "protobufjs": "^7.2.6",
     "undici": "^6.19.7"
   },
