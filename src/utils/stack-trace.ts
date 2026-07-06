@@ -11,22 +11,28 @@ export interface SourceLocation {
 /**
  * Captures the current stack trace and parses it to find the first frame outside of the Watchnoc SDK.
  */
+/**
+ * @param depth how many non-SDK frames to skip before returning a location;
+ * 1 (default) returns the caller's immediate frame, 2 returns its caller, etc.
+ */
 export function captureSourceLocation(depth = 1): SourceLocation | undefined {
   const err = new Error();
   const stack = err.stack;
   if (!stack) return undefined;
 
   const lines = stack.split('\n');
+  const targetDepth = Math.max(1, Math.floor(depth));
+  let seen = 0;
+
   // Skip the first line (Error message) and subsequent frames that are inside the SDK
-  // We look for the first frame that is not part of our package
-  
+  // We look for the Nth frame (per targetDepth) that is not part of our package
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line) continue;
-    
+
     // Filter out internal node modules and Watchnoc SDK frames
     if (
-      line.includes('node:internal') || 
+      line.includes('node:internal') ||
       line.includes('(internal/') ||
       line.includes('/watchnoc/node/src/') ||
       line.includes('/watchnoc/node/dist/') ||
@@ -39,9 +45,8 @@ export function captureSourceLocation(depth = 1): SourceLocation | undefined {
 
     const location = parseStackFrame(line);
     if (location) {
-      // If we have a depth > 1, we might want to skip more frames, 
-      // but usually the first non-SDK frame is what we want.
-      return location;
+      seen += 1;
+      if (seen >= targetDepth) return location;
     }
   }
 

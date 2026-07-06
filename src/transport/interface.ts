@@ -1,4 +1,4 @@
-import type { LogEvent } from '../event';
+import type { LogEvent } from '../core/event.js';
 
 export type SendOptions = {
   timeoutMs: number;

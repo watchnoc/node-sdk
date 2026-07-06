@@ -1,13 +1,12 @@
-import { ExportResultCode } from '@opentelemetry/core';
-import type { LogRecordExporter, LogRecordExportResult } from '@opentelemetry/sdk-logs';
-import type { ReadableLogRecord } from '@opentelemetry/sdk-logs';
-import type { WatchnocClient } from '../client';
+import { ExportResultCode, type ExportResult } from '@opentelemetry/core';
+import type { LogRecordExporter, ReadableLogRecord } from '@opentelemetry/sdk-logs';
+import type { WatchnocClient } from '../core/client.js';
 import { SeverityNumber } from '@opentelemetry/api-logs';
 
 export class WatchnocLogRecordExporter implements LogRecordExporter {
   constructor(private readonly client: WatchnocClient) {}
 
-  export(logs: ReadableLogRecord[], resultCallback: (result: LogRecordExportResult) => void): void {
+  export(logs: ReadableLogRecord[], resultCallback: (result: ExportResult) => void): void {
     if (logs.length === 0) {
       resultCallback({ code: ExportResultCode.SUCCESS });
       return;
