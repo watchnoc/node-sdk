@@ -7,6 +7,8 @@ export type WatchnocConfig = {
   httpUrl: string;
   grpcAddr: string;
   tlsCert?: string;
+  /** Allow the HTTP transport to send data over plaintext http:// to a non-local host. Off by default. */
+  allowInsecureHttp: boolean;
 
   service?: string;
   environment?: string;
@@ -23,6 +25,8 @@ export type WatchnocConfig = {
 
   redact: boolean;
   redactPatterns?: RedactPattern[];
+  sensitiveKeyPattern?: RegExp;
+  maxFieldChars: number;
 
   slowQueryMs: number;
   nPlusOneThreshold: number;
@@ -39,12 +43,11 @@ export function loadConfig(input: Partial<WatchnocConfig> & { apiKey?: string })
   const env = typeof process !== 'undefined' ? process.env : {};
 
   const apiKey = (input.apiKey ?? env.WATCHNOC_API_KEY ?? '').trim();
-  const transport = (input.transport ??
-    (env.WATCHNOC_TRANSPORT as any) ??
-    'grpc') as WatchnocConfig['transport'];
+  const transport = toTransport(input.transport ?? env.WATCHNOC_TRANSPORT, 'grpc');
   const grpcAddr = (input.grpcAddr ?? env.WATCHNOC_GRPC_ADDR ?? 'localhost:50051').trim();
   const httpUrl = (input.httpUrl ?? env.WATCHNOC_HTTP_URL ?? 'http://localhost:8080').trim();
   const tlsCert = (input.tlsCert ?? env.WATCHNOC_TLS_CERT ?? '').trim() || undefined;
+  const allowInsecureHttp = toBool(input.allowInsecureHttp ?? env.WATCHNOC_ALLOW_INSECURE_HTTP, false);
 
   const service = (input.service ?? env.WATCHNOC_SERVICE ?? '').trim() || undefined;
   const environment = (input.environment ?? env.WATCHNOC_ENVIRONMENT ?? '').trim() || undefined;
@@ -60,6 +63,7 @@ export function loadConfig(input: Partial<WatchnocConfig> & { apiKey?: string })
   const retryMaxMs = toInt(input.retryMaxMs ?? env.WATCHNOC_RETRY_MAX_MS, 5000);
 
   const redact = toBool(input.redact ?? env.WATCHNOC_REDACT, true);
+  const maxFieldChars = toInt(input.maxFieldChars ?? env.WATCHNOC_MAX_FIELD_CHARS, 8192);
   const slowQueryMs = toInt(input.slowQueryMs ?? env.WATCHNOC_SLOW_QUERY_MS, 100);
   const nPlusOneThreshold = toInt(input.nPlusOneThreshold ?? env.WATCHNOC_N_PLUS_ONE_THRESHOLD, 5);
   const samplingRate = toFloat(input.samplingRate ?? env.WATCHNOC_SAMPLING_RATE, 1.0);
@@ -73,6 +77,7 @@ export function loadConfig(input: Partial<WatchnocConfig> & { apiKey?: string })
     tlsCert,
     grpcAddr,
     httpUrl,
+    allowInsecureHttp,
     service,
     environment,
     release,
@@ -85,6 +90,8 @@ export function loadConfig(input: Partial<WatchnocConfig> & { apiKey?: string })
     retryMaxMs,
     redact,
     redactPatterns: input.redactPatterns,
+    sensitiveKeyPattern: input.sensitiveKeyPattern,
+    maxFieldChars,
     slowQueryMs,
     nPlusOneThreshold,
     samplingRate,
@@ -95,6 +102,11 @@ export function loadConfig(input: Partial<WatchnocConfig> & { apiKey?: string })
 }
 
 
+
+function toTransport(v: unknown, def: WatchnocConfig['transport']): WatchnocConfig['transport'] {
+  if (v === 'grpc' || v === 'http') return v;
+  return def;
+}
 
 function toInt(v: unknown, def: number): number {
   if (typeof v === 'number' && Number.isFinite(v)) return Math.floor(v);

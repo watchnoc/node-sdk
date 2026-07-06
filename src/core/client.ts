@@ -3,7 +3,7 @@ import type { WatchnocContext } from './context.js';
 import { loadConfig, type WatchnocConfig } from './config.js';
 import { WatchnocError } from './errors.js';
 import { buildLogEvent, type LogMeta, type LogLevel, type LogEvent } from './event.js';
-import { redactString, type RedactPattern, defaultRedactPatterns } from '../utils/redact.js';
+import { redactString, type RedactPattern, defaultRedactPatterns, defaultSensitiveKeyPattern } from '../utils/redact.js';
 import { uploadReplayChunk, type ReplayChunk } from '../replay/upload.js';
 import { QueueFlusher } from '../queue/flusher.js';
 import { EventQueue } from '../queue/queue.js';
@@ -15,6 +15,8 @@ import { captureSourceLocation } from '../utils/stack-trace.js';
 
 export type WatchnocClientOptions = Partial<WatchnocConfig> & { apiKey: string };
 
+const NEVER_MATCH = /(?!)/;
+
 
 export class WatchnocClient {
   private readonly cfg: WatchnocConfig;
@@ -23,6 +25,7 @@ export class WatchnocClient {
   private readonly queue: EventQueue<LogEvent>;
   private readonly flusher: QueueFlusher;
   private readonly patterns: RedactPattern[];
+  private readonly keyPattern: RegExp;
   private closed = false;
 
   constructor(options: WatchnocClientOptions) {
@@ -37,6 +40,7 @@ export class WatchnocClient {
     this.queue = new EventQueue<LogEvent>(this.cfg.queueMax);
 
     this.patterns = this.cfg.redactPatterns ?? defaultRedactPatterns();
+    this.keyPattern = this.cfg.sensitiveKeyPattern ?? defaultSensitiveKeyPattern();
 
     this.flusher = new QueueFlusher({
       queue: this.queue,
@@ -81,6 +85,7 @@ export class WatchnocClient {
       httpUrl: this.cfg.httpUrl,
       chunk,
       timeoutMs: this.cfg.timeoutMs,
+      allowInsecureHttp: this.cfg.allowInsecureHttp,
     });
   }
 
@@ -164,6 +169,8 @@ export class WatchnocClient {
       runtime: 'node',
       ingestionType: this.cfg.transport === 'http' ? 'http' : 'grpc',
       redactPatterns: this.cfg.redact ? this.patterns : [],
+      sensitiveKeyPattern: this.cfg.redact ? this.keyPattern : NEVER_MATCH,
+      maxFieldChars: this.cfg.maxFieldChars,
       tags: parseTags(rawTags),
       file: finalFile,
       lineNumber: finalLineNumber,

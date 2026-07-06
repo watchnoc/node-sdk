@@ -19,6 +19,33 @@ describe('db-utils', () => {
       // Double quotes might need more care in a real implementation, but for now:
       expect(stripBindings(sql)).toContain('?');
     });
+
+    it('should not leak content after an escaped quote inside a string literal', () => {
+      const sql = "SELECT * FROM users WHERE name = 'O''Brien' AND ssn = '123-45-6789'";
+      const out = stripBindings(sql);
+      expect(out).not.toContain('Brien');
+      expect(out).not.toContain('123-45-6789');
+    });
+
+    it('should not leak content after a backslash-escaped quote', () => {
+      const sql = "SELECT * FROM users WHERE note = 'it\\'s secret@example.com'";
+      const out = stripBindings(sql);
+      expect(out).not.toContain('secret@example.com');
+    });
+
+    it('should not touch digits that are part of an identifier', () => {
+      const sql = 'SELECT * FROM table1 WHERE col2 = 5';
+      const out = stripBindings(sql);
+      expect(out).toContain('table1');
+      expect(out).toContain('col2');
+      expect(out).toContain('= ?');
+    });
+
+    it('should redact postgres dollar-quoted strings', () => {
+      const sql = "SELECT * FROM users WHERE bio = $tag$secret@example.com$tag$";
+      const out = stripBindings(sql);
+      expect(out).not.toContain('secret@example.com');
+    });
   });
 
   describe('extractOperation', () => {

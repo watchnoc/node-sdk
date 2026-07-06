@@ -2,6 +2,7 @@ import dc from 'node:diagnostics_channel';
 import type { WatchnocClient } from '../core/client.js';
 import type { Instrumentation } from './registry.js';
 import { WatchnocContextStore } from '../core/context.js';
+import { redactUrl } from '../utils/redact.js';
 
 export class HttpInstrumentation implements Instrumentation {
   readonly name = 'http';
@@ -39,11 +40,12 @@ export class HttpInstrumentation implements Instrumentation {
       }
 
       const duration = (data.timeStamp ?? Date.now()) - (data.startTime ?? Date.now());
+      const safeUrl = redactUrl(url);
 
-      client.info(`HTTP ${request.method} ${url} - ${response.statusCode}`, {
+      client.info(`HTTP ${request.method} ${safeUrl} - ${response.statusCode}`, {
         type: 'network',
         method: request.method,
-        url,
+        url: safeUrl,
         status: response.statusCode,
         duration_ms: duration,
       });

@@ -1,7 +1,15 @@
 import { randomUUID } from 'node:crypto';
 
 import type { WatchnocContext } from './context.js';
-import { defaultRedactPatterns, redactMetadata, redactString, type RedactPattern } from '../utils/redact.js';
+import {
+  defaultRedactPatterns,
+  defaultSensitiveKeyPattern,
+  redactString,
+  redactValue,
+  type RedactPattern,
+} from '../utils/redact.js';
+
+const DEFAULT_MAX_FIELD_CHARS = 8192;
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -50,6 +58,8 @@ export type BuildLogEventOptions = {
   runtime?: string;
   ingestionType: 'grpc' | 'http';
   redactPatterns?: RedactPattern[];
+  sensitiveKeyPattern?: RegExp;
+  maxFieldChars?: number;
   file?: string;
   lineNumber?: number;
   functionName?: string;
@@ -58,13 +68,15 @@ export type BuildLogEventOptions = {
 
 export function buildLogEvent(opts: BuildLogEventOptions): LogEvent {
   const patterns = opts.redactPatterns ?? defaultRedactPatterns();
+  const keyPattern = opts.sensitiveKeyPattern ?? defaultSensitiveKeyPattern();
+  const maxChars = opts.maxFieldChars ?? DEFAULT_MAX_FIELD_CHARS;
   const ctx = opts.ctx ?? {};
 
   const ev: LogEvent = {
     log_id: randomUUID(),
     timestamp_unix_ms: Date.now(),
     level: opts.level,
-    message: redactString(String(opts.message ?? ''), patterns),
+    message: truncate(redactString(String(opts.message ?? ''), patterns), maxChars),
     ingestion_type: opts.ingestionType,
     runtime: opts.runtime ?? 'node',
   };
@@ -81,13 +93,12 @@ export function buildLogEvent(opts: BuildLogEventOptions): LogEvent {
   if (opts.err) {
     const ef = errorFields(opts.err);
     setStr(ev, 'error_type', ef.error_type);
-    setStr(ev, 'error_message', redactString(ef.error_message, patterns));
-    setStr(ev, 'stack_trace', redactString(ef.stack_trace, patterns));
+    setStr(ev, 'error_message', truncate(redactString(ef.error_message, patterns), maxChars));
+    setStr(ev, 'stack_trace', truncate(redactString(ef.stack_trace, patterns), maxChars));
   }
 
   if (opts.meta && Object.keys(opts.meta).length > 0) {
-    const m = normalizeMeta(opts.meta);
-    ev.metadata = redactMetadata(m, patterns);
+    ev.metadata = normalizeMeta(opts.meta, patterns, keyPattern, maxChars);
   }
 
   setStr(ev, 'file', opts.file);
@@ -96,6 +107,11 @@ export function buildLogEvent(opts: BuildLogEventOptions): LogEvent {
   if (opts.tags && opts.tags.length > 0) ev.tags = opts.tags;
 
   return ev;
+}
+
+function truncate(s: string, maxChars: number): string {
+  if (s.length <= maxChars) return s;
+  return `${s.slice(0, maxChars)}...[truncated]`;
 }
 
 function setStr<T extends Record<string, unknown>>(obj: T, key: string, v: unknown): void {
@@ -114,29 +130,29 @@ function errorFields(err: unknown): { error_type: string; error_message: string;
   return { error_type: 'Error', error_message: String(err), stack_trace: '' };
 }
 
-function normalizeMeta(meta: LogMeta): Record<string, string> {
+function normalizeMeta(
+  meta: LogMeta,
+  patterns: RedactPattern[],
+  keyPattern: RegExp,
+  maxChars: number,
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(meta)) {
     if (!k) continue;
     if (v === undefined || v === null) continue;
-    if (typeof v === 'string') {
-      out[k] = v;
-      continue;
-    }
-    if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint') {
-      out[k] = String(v);
-      continue;
-    }
-    if (v instanceof Error) {
-      out[k] = JSON.stringify({ name: v.name, message: v.message, stack: v.stack });
-      continue;
-    }
-    try {
-      out[k] = JSON.stringify(v);
-    } catch {
-      out[k] = String(v);
-    }
+    const redacted = redactValue(k, v, patterns, keyPattern);
+    out[k] = truncate(stringifyMetaValue(redacted), maxChars);
   }
   return out;
+}
+
+function stringifyMetaValue(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint') return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
 }
 
