@@ -5,19 +5,22 @@ Observability and error tracking for Node.js backend services. Capture server-si
 ## 🚀 Features
 
 - **⚡ Low Latency**: Fast, asynchronous log ingestion.
-- **🚨 Automated Error Capture**: Handles `uncaughtException` and `unhandledRejection`.
+- **🚨 Automated Error Capture**: `captureException` for handled errors; wire up `process.on('uncaughtException'/'unhandledRejection')` yourself to forward fatals.
 - **🔗 Request Id Tracking**: Automatically correlates logs within a single request context.
-- **🛠️ Framework Support**: Built-in support for Express, Fastify, and NestJS.
-- **🗄️ Database Monitoring**: Automatic instrumentation for Prisma, MongoDB, Drizzle, Mongoose, and more.
+- **🛠️ Framework Support**: Built-in support for Express, Fastify, NestJS, and plain `http`.
+- **🗄️ Database Monitoring**: Automatic instrumentation for Prisma, MongoDB, Drizzle, Mongoose, TypeORM, and `pg`.
 - **🔍 N+1 Detection**: Automatically identify and alert on inefficient database access patterns.
+- **🔒 Redaction by default**: emails, card numbers, bearer/basic tokens, AWS keys, and JWTs are stripped from values; fields named like `password`, `token`, `secret`, `authorization`, etc. are stripped entirely regardless of value shape.
 
 ---
 
 ## 🏗️ Installation
 
 ```bash
-npm install @Watchnoc/node
+npm install @watchnoc/node
 ```
+
+This package is ESM-only (`"type": "module"`). Use `import`, not `require`.
 
 ---
 
@@ -25,51 +28,77 @@ npm install @Watchnoc/node
 
 ### 1. Initialize
 
-```javascript
-const Watchnoc = require('@Watchnoc/node');
+Set the API key via environment variable rather than hardcoding it in source:
 
-Watchnoc.init({
-  apiKey: 'your_api_key',
-  serviceName: 'order-service',
+```bash
+export WATCHNOC_API_KEY=your_api_key
+```
+
+```javascript
+import { init } from '@watchnoc/node';
+
+init({
+  service: 'order-service',
+  environment: process.env.NODE_ENV,
 });
 ```
+
+`apiKey` can also be passed explicitly to `init({ apiKey: '...' })`, but avoid committing it to source control.
+
+By default the SDK refuses to send data over plaintext `http://` to any host other than localhost — set `httpUrl`/`WATCHNOC_HTTP_URL` to an `https://` endpoint for remote collectors, or pass `allowInsecureHttp: true` if you understand the risk (e.g. a trusted private network).
 
 ## 📡 Framework Integrations
 
 ### Express
 ```javascript
-const app = require('express')();
-app.use(Watchnoc.expressMiddleware());
+import express from 'express';
+import { watchnocMiddleware } from '@watchnoc/node';
+
+const app = express();
+app.use(watchnocMiddleware());
 ```
 
 ### Fastify
 ```javascript
-const fastify = require('fastify')();
-const { WatchnocFastifyPlugin } = require('@Watchnoc/node');
+import Fastify from 'fastify';
+import { watchnocPlugin } from '@watchnoc/node';
 
-fastify.register(WatchnocFastifyPlugin);
+const fastify = Fastify();
+fastify.register(watchnocPlugin);
 ```
 
 ### NestJS
 ```javascript
-import { WatchnocInterceptor } from '@Watchnoc/node';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { WatchnocMiddleware } from '@watchnoc/node';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
-@Module({
-  providers: [{ provide: APP_INTERCEPTOR, useClass: WatchnocInterceptor }],
-})
-export class AppModule {}
+@Module({})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(WatchnocMiddleware).forRoutes('*');
+  }
+}
+```
+
+### Plain `http`
+```javascript
+import { createServer } from 'http';
+import { watchnocHttpHandler } from '@watchnoc/node';
+
+createServer(watchnocHttpHandler((req, res) => {
+  // ... your handler
+})).listen(3000);
 ```
 
 ---
 
 ## 🗄️ Database Integrations
 
-Connect Watchnoc once to your database client to automatically track query performance, slow queries, and N+1 patterns.
+Connect Watchnoc once to your database client to automatically track query performance, slow queries, and N+1 patterns. Captured SQL/filters have literal values stripped before being sent — see [Data captured & redaction](#-data-captured--redaction).
 
 ### Prisma
 ```javascript
-const { instrumentPrisma } = require('@Watchnoc/node');
+import { instrumentPrisma } from '@watchnoc/node';
 const prisma = new PrismaClient();
 
 instrumentPrisma(prisma);
@@ -77,7 +106,7 @@ instrumentPrisma(prisma);
 
 ### MongoDB
 ```javascript
-const { instrumentMongoDB } = require('@Watchnoc/node');
+import { instrumentMongoDB } from '@watchnoc/node';
 const client = new MongoClient(url);
 
 instrumentMongoDB(client);
@@ -85,30 +114,34 @@ instrumentMongoDB(client);
 
 ### Drizzle
 ```javascript
-const { WatchnocDrizzleLogger } = require('@Watchnoc/node');
-const db = drizzle(sqlite, { logger: WatchnocDrizzleLogger });
+import { watchnocDrizzleLogger } from '@watchnoc/node';
+const db = drizzle(sqlite, { logger: watchnocDrizzleLogger });
 ```
 
 ### node-postgres (pg)
 ```javascript
-const { instrumentPg } = require('@Watchnoc/node');
+import { instrumentPg } from '@watchnoc/node';
 const pool = new Pool();
 
 instrumentPg(pool);
 ```
 
 ### Mongoose / TypeORM
-- **Mongoose**: Call `instrumentMongoose()` at startup.
-- **TypeORM**: Add `WatchnocTypeORMLogger` to your ConnectionOptions.
+- **Mongoose**: Call `instrumentMongoose(connection)` at startup.
+- **TypeORM**: Add `WatchnocTypeORMLogger` to your `DataSourceOptions`.
 
-### 3. Manual Error Logging
+### Manual Error Logging
 
 ```javascript
+import { captureException, log } from '@watchnoc/node';
+
 try {
   // ... business logic
 } catch (err) {
-  Watchnoc.captureError(err, { extra: 'context' });
+  captureException(err, { extra: 'context' });
 }
+
+log.info('order placed', { orderId });
 ```
 
 ---
@@ -119,9 +152,9 @@ try {
 Watchnoc uses `AsyncLocalStorage` to track context across asynchronous calls without manual passing.
 
 ```javascript
-const { withContext, log } = require('@Watchnoc/node');
+import { Context, log } from '@watchnoc/node';
 
-withContext({ requestId: 'abc' }, () => {
+Context.run({ requestId: 'abc' }, () => {
   // All logs inside this block will have requestId: 'abc'
   log.info('Inside context');
 });
@@ -130,11 +163,34 @@ withContext({ requestId: 'abc' }, () => {
 ### N+1 Query Detection
 Watchnoc automatically detects N+1 patterns when you use our database integrations. Insights are generated when the same query is executed multiple times within a single request context.
 
-You can configure thresholds in `Watchnoc.init()`:
+You can configure thresholds in `init()`:
 ```javascript
-Watchnoc.init({
-  apiKey: '...',
+init({
   nPlusOneThreshold: 5, // Alert after 5 repetitive queries (default: 5)
-  slowQueryMs: 100,      // Threshold for slow query alerts (default: 500)
+  slowQueryMs: 100,     // Threshold for slow query alerts (default: 100)
 });
 ```
+
+---
+
+## 🔒 Data captured & redaction
+
+This SDK forwards whatever you pass to `log.*`/`captureException`, plus SQL text, Mongo filters, and HTTP URLs captured by the built-in instrumentation. To keep secrets and PII out of your observability backend:
+
+- **Value-pattern redaction** (`redact: true` by default) replaces emails, card-number-shaped digit runs, `pk_`/`sk_` API keys, `Bearer`/`Basic` auth headers, AWS access key IDs, JWTs, and SSNs wherever they appear in a string.
+- **Key-name redaction** independently strips any metadata field whose name looks like `password`, `token`, `secret`, `apiKey`, `authorization`, `credential`, `ssn`, `creditCard`, `cvv`, `cookie`, etc. — this catches secrets that don't match a value pattern (e.g. a raw password string). It's recursive, so nested objects and arrays are covered too.
+- SQL captured by the database integrations has string/numeric literals replaced with `?` before being sent; Mongo filters are reduced to a value-shape (`<string>`, `<number>`, ...) rather than raw values.
+- Every field is truncated at `maxFieldChars` (default 8192 characters) before being sent.
+- Override or extend the defaults with `redactPatterns`, `sensitiveKeyPattern`, and `maxFieldChars` in `init()`.
+
+None of this is a substitute for not logging secrets in the first place — treat it as defense in depth, not a guarantee.
+
+## 🔐 Transport security
+
+- The gRPC transport uses TLS for any non-loopback address by default (pass `tlsCert` for a custom CA).
+- The HTTP transport (and its use as a gRPC fallback) refuses plaintext `http://` to non-loopback hosts unless `allowInsecureHttp: true` is set.
+- The API key is sent as `x-api-key` on every request/stream — keep it out of source control and rotate it if it leaks.
+
+## Reporting a vulnerability
+
+See [SECURITY.md](./SECURITY.md).
