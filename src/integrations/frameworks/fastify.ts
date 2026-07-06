@@ -1,4 +1,9 @@
-import { WatchnocContextStore, generateRequestId, parseTraceparent } from '../../core/context.js';
+import {
+  WatchnocContextStore,
+  generateRequestId,
+  parseTraceparent,
+  sanitizeExternalId,
+} from '../../core/context.js';
 
 export type FastifyPluginOptions = {
   environment?: string;
@@ -11,8 +16,12 @@ export function WatchnocFastifyPlugin(
   done: (err?: Error) => void,
 ) {
   fastify.addHook('onRequest', (req: any, reply: any, next: any) => {
-    const requestId = req.headers['x-request-id'] ?? generateRequestId();
-    const sessionId = req.headers['x-session-id'];
+    const requestId =
+      sanitizeExternalId(typeof req.headers['x-request-id'] === 'string' ? req.headers['x-request-id'] : undefined) ??
+      generateRequestId();
+    const sessionId = sanitizeExternalId(
+      typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined,
+    );
     const tp = req.headers['traceparent'];
     const trace = typeof tp === 'string' ? parseTraceparent(tp) : null;
 
@@ -20,8 +29,8 @@ export function WatchnocFastifyPlugin(
 
     WatchnocContextStore.run(
       {
-        requestId: typeof requestId === 'string' ? requestId : String(requestId),
-        sessionId: typeof sessionId === 'string' ? sessionId : undefined,
+        requestId,
+        sessionId,
         traceId: trace?.traceId,
         spanId: trace?.spanId,
         environment: opts.environment ?? process.env.WATCHNOC_ENVIRONMENT,

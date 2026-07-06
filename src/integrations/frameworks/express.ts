@@ -1,4 +1,9 @@
-import { WatchnocContextStore, generateRequestId, parseTraceparent } from '../../core/context.js';
+import {
+  WatchnocContextStore,
+  generateRequestId,
+  parseTraceparent,
+  sanitizeExternalId,
+} from '../../core/context.js';
 
 export type ExpressMiddlewareOptions = {
   environment?: string;
@@ -7,8 +12,8 @@ export type ExpressMiddlewareOptions = {
 
 export function WatchnocExpressMiddleware(opts: ExpressMiddlewareOptions = {}) {
   return function WatchnocMiddleware(req: any, res: any, next: any) {
-    const requestId = header(req, 'x-request-id') ?? generateRequestId();
-    const sessionId = header(req, 'x-session-id') ?? undefined;
+    const requestId = sanitizeExternalId(header(req, 'x-request-id')) ?? generateRequestId();
+    const sessionId = sanitizeExternalId(header(req, 'x-session-id'));
     const tp = header(req, 'traceparent');
     const trace = tp ? parseTraceparent(tp) : null;
 

@@ -9,7 +9,14 @@ import type { LogEvent } from '../core/event.js';
 
 import type { SendOptions, Transport } from './interface.js';
 
-const require = createRequire(import.meta.url);
+// Avoids a hard `import.meta.url` reference so this file can also compile under the CJS
+// build (tsconfig.cjs.json), where `import.meta` is a syntax error but `__filename` exists.
+// Named `nodeRequire` (not `require`) since CJS output reserves `require` at module scope.
+const nodeRequire = createRequire(typeof __filename !== 'undefined' ? __filename : importMetaUrl());
+
+function importMetaUrl(): string {
+  return (0, eval)('import.meta.url') as string;
+}
 
 export type GrpcTransportOptions = {
   apiKey: string;
@@ -64,6 +71,10 @@ export class GrpcTransport implements Transport {
           'grpc.keepalive_timeout_ms': 5000,
           'grpc.keepalive_permit_without_calls': 1,
           'grpc.max_reconnect_backoff_ms': 10000,
+          // Log/error payloads are repetitive JSON-shaped protobuf messages; gzip on the
+          // wire cuts bandwidth substantially for the same reason it helps the HTTP
+          // transport (see transport/compress.ts).
+          'grpc.default_compression_algorithm': grpc.compressionAlgorithms.gzip,
         },
         {
           serializeLogEvent: this.serializeLogEvent,
@@ -271,7 +282,7 @@ function createProtoCodec(): {
   serializeAck: (a: any) => Buffer;
   deserializeAck: (b: Buffer) => any;
 } {
-  const protoDir = join(require.resolve('@watchnoc/proto/package.json'), '../logs/v1');
+  const protoDir = join(nodeRequire.resolve('@watchnoc/proto/package.json'), '../logs/v1');
   const protoPath = join(protoDir, 'ingest.proto');
   const root = protobuf.loadSync(protoPath);
   const logEvent = root.lookupType('logs.v1.LogEvent');

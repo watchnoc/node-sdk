@@ -1,5 +1,7 @@
-import { WatchnocError } from '../errors';
-import { getFetch } from '../transport/fetch';
+import { WatchnocError } from '../core/errors.js';
+import { getFetch } from '../transport/fetch.js';
+import { assertSecureUrl } from '../transport/http.js';
+import { compressJsonBody } from '../transport/compress.js';
 
 export type ReplayChunk = {
   sessionId: string;
@@ -14,27 +16,26 @@ export async function uploadReplayChunk(opts: {
   httpUrl: string;
   chunk: ReplayChunk;
   timeoutMs: number;
+  allowInsecureHttp?: boolean;
 }): Promise<void> {
   const baseUrl = opts.httpUrl.replace(/\/+$/, '');
+  assertSecureUrl(baseUrl, opts.allowInsecureHttp);
   const url = `${baseUrl}/v1/replay/chunks`;
 
-  const body = {
+  const { body, headers } = compressJsonBody({
     session_id: opts.chunk.sessionId,
     chunk_index: opts.chunk.chunkIndex,
     started_at: opts.chunk.startedAt,
     ended_at: opts.chunk.endedAt,
     events: opts.chunk.events,
-  };
+  });
 
   const res = await fetchWithTimeout(
     url,
     {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': opts.apiKey,
-      },
-      body: JSON.stringify(body),
+      headers: { ...headers, 'x-api-key': opts.apiKey },
+      body,
     },
     opts.timeoutMs,
   );

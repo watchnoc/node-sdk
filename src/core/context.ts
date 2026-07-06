@@ -78,6 +78,28 @@ export function parseTraceparent(traceparent: string): { traceId: string; spanId
   return { traceId: traceId.toLowerCase(), spanId: spanId.toLowerCase() };
 }
 
+const SAFE_EXTERNAL_ID_PATTERN = /^[A-Za-z0-9_.:-]+$/;
+const MAX_EXTERNAL_ID_LENGTH = 128;
+
+/**
+ * Validates an identifier taken from an inbound request header (x-request-id,
+ * x-session-id, ...) before it's trusted as a correlation key. Client-supplied
+ * headers are otherwise attacker-controlled input flowing straight into every
+ * downstream log event, which allows log forgery / cross-session spoofing.
+ * Returns undefined if the value is missing, oversized, or contains characters
+ * outside a conservative id charset.
+ */
+export function sanitizeExternalId(
+  value: string | null | undefined,
+  maxLength: number = MAX_EXTERNAL_ID_LENGTH,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxLength) return undefined;
+  if (!SAFE_EXTERNAL_ID_PATTERN.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 export function generateRequestId(): string {
   try {
     return randomUUID();

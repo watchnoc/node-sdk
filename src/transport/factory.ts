@@ -6,7 +6,13 @@ import type { Transport } from './interface.js';
 
 export function createTransports(cfg: WatchnocConfig): { primary: Transport; fallback?: Transport } {
   if (cfg.transport === 'http') {
-    return { primary: new HttpTransport({ apiKey: cfg.apiKey, baseUrl: cfg.httpUrl }) };
+    return {
+      primary: new HttpTransport({
+        apiKey: cfg.apiKey,
+        baseUrl: cfg.httpUrl,
+        allowInsecureHttp: cfg.allowInsecureHttp,
+      }),
+    };
   }
   return {
     primary: new GrpcTransport({
@@ -16,7 +22,11 @@ export function createTransports(cfg: WatchnocConfig): { primary: Transport; fal
       debug: cfg.debug,
       onError: cfg.onError,
     }),
-    fallback: new HttpTransport({ apiKey: cfg.apiKey, baseUrl: cfg.httpUrl }),
+    fallback: new HttpTransport({
+      apiKey: cfg.apiKey,
+      baseUrl: cfg.httpUrl,
+      allowInsecureHttp: cfg.allowInsecureHttp,
+    }),
   };
 }
 

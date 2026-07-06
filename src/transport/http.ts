@@ -3,10 +3,12 @@ import type { LogEvent } from '../core/event.js';
 
 import type { SendOptions, Transport } from './interface.js';
 import { getFetch } from './fetch.js';
+import { compressJsonBody } from './compress.js';
 
 export type HttpTransportOptions = {
   apiKey: string;
   baseUrl: string;
+  allowInsecureHttp?: boolean;
 };
 
 export class HttpTransport implements Transport {
@@ -18,21 +20,20 @@ export class HttpTransport implements Transport {
   constructor(opts: HttpTransportOptions) {
     this.apiKey = opts.apiKey;
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
+    assertSecureUrl(this.baseUrl, opts.allowInsecureHttp);
   }
 
   async sendBatch(events: LogEvent[], opts: SendOptions): Promise<void> {
     if (events.length === 0) return;
     const url = `${this.baseUrl}/v1/logs/batch`;
     const bodyEvents = events.map((e) => ({ ...e, ingestion_type: 'http' }));
+    const { body, headers } = compressJsonBody({ events: bodyEvents });
     const res = await fetchWithTimeout(
       url,
       {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': this.apiKey,
-        },
-        body: JSON.stringify({ events: bodyEvents }),
+        headers: { ...headers, 'x-api-key': this.apiKey },
+        body,
       },
       opts.timeoutMs,
     );
@@ -50,11 +51,8 @@ export class HttpTransport implements Transport {
           url,
           {
             method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              'x-api-key': this.apiKey,
-            },
-            body: JSON.stringify({ events: bodyEvents }),
+            headers: { ...headers, 'x-api-key': this.apiKey },
+            body,
           },
           opts.timeoutMs,
         );
@@ -98,4 +96,33 @@ function parseRetryAfterMs(v: string | null): number | null {
 
 function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+
+/**
+ * Refuses to ship telemetry (including the API key, in the x-api-key header)
+ * over plaintext HTTP to a non-local host. Loopback addresses are allowed
+ * unencrypted for local development against a local collector.
+ */
+export function assertSecureUrl(rawUrl: string, allowInsecureHttp?: boolean): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (err) {
+    throw new WatchnocError('config', `invalid httpUrl: ${rawUrl}`, err);
+  }
+
+  if (parsed.protocol === 'https:') return;
+  if (parsed.protocol !== 'http:') {
+    throw new WatchnocError('config', `unsupported protocol in httpUrl: ${parsed.protocol}`);
+  }
+  if (allowInsecureHttp) return;
+  if (LOCAL_HOSTNAMES.has(parsed.hostname.toLowerCase())) return;
+
+  throw new WatchnocError(
+    'config',
+    `refusing to send data over plaintext http:// to non-local host "${parsed.hostname}"; ` +
+      'use https:// or set allowInsecureHttp: true to override',
+  );
 }
