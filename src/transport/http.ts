@@ -25,9 +25,9 @@ export class HttpTransport implements Transport {
 
   async sendBatch(events: LogEvent[], opts: SendOptions): Promise<void> {
     if (events.length === 0) return;
-    const url = `${this.baseUrl}/v1/logs/batch`;
+    const url = `${this.baseUrl}/api/v1/ingest/logs`;
     const bodyEvents = events.map((e) => ({ ...e, ingestion_type: 'http' }));
-    const { body, headers } = compressJsonBody({ events: bodyEvents });
+    const { body, headers } = compressJsonBody({ logs: bodyEvents });
     const res = await fetchWithTimeout(
       url,
       {

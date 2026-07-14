@@ -44,8 +44,8 @@ export function loadConfig(input: Partial<WatchnocConfig> & { apiKey?: string })
 
   const apiKey = (input.apiKey ?? env.WATCHNOC_API_KEY ?? '').trim();
   const transport = toTransport(input.transport ?? env.WATCHNOC_TRANSPORT, 'grpc');
-  const grpcAddr = (input.grpcAddr ?? env.WATCHNOC_GRPC_ADDR ?? 'localhost:50051').trim();
-  const httpUrl = (input.httpUrl ?? env.WATCHNOC_HTTP_URL ?? 'http://localhost:8080').trim();
+  const grpcAddr = (input.grpcAddr ?? env.WATCHNOC_GRPC_ADDR ?? 'grpc.watchnoc.com:443').trim();
+  const httpUrl = (input.httpUrl ?? env.WATCHNOC_HTTP_URL ?? 'https://api.watchnoc.com').trim();
   const tlsCert = (input.tlsCert ?? env.WATCHNOC_TLS_CERT ?? '').trim() || undefined;
   const allowInsecureHttp = toBool(input.allowInsecureHttp ?? env.WATCHNOC_ALLOW_INSECURE_HTTP, false);
 

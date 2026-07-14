@@ -4,8 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { HttpTransport, assertSecureUrl } from './http';
 
 describe('HttpTransport', () => {
-  it('sets x-api-key header on request', async () => {
-    const fetchSpy = vi.fn(async (_url: string, init: any) => {
+  it('posts to /api/v1/ingest/logs and sets x-api-key header', async () => {
+    const fetchSpy = vi.fn(async (url: string, init: any) => {
+      expect(url).toBe('http://localhost:8080/api/v1/ingest/logs');
       expect(init.headers['x-api-key']).toBe('pk_test');
       return { ok: true, status: 200, headers: { get: () => null } } as any;
     });
@@ -38,8 +39,8 @@ describe('HttpTransport', () => {
       expect(init.headers['content-encoding']).toBe('gzip');
       expect(Buffer.isBuffer(init.body)).toBe(true);
       const decoded = JSON.parse(gunzipSync(init.body).toString('utf8'));
-      expect(decoded.events).toHaveLength(1);
-      expect(decoded.events[0].message).toContain('x');
+      expect(decoded.logs).toHaveLength(1);
+      expect(decoded.logs[0].message).toContain('x');
       return { ok: true, status: 200, headers: { get: () => null } } as any;
     });
     (globalThis as any).fetch = fetchSpy;

@@ -20,7 +20,7 @@ export async function uploadReplayChunk(opts: {
 }): Promise<void> {
   const baseUrl = opts.httpUrl.replace(/\/+$/, '');
   assertSecureUrl(baseUrl, opts.allowInsecureHttp);
-  const url = `${baseUrl}/v1/replay/chunks`;
+  const url = `${baseUrl}/api/v1/replay/chunks/upload`;
 
   const { body, headers } = compressJsonBody({
     session_id: opts.chunk.sessionId,
