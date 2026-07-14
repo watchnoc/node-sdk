@@ -1,4 +1,4 @@
-import { WatchnocClient } from '../src/client';
+import { WatchnocClient } from '@watchnoc/node';
 
 const client = new WatchnocClient({ apiKey: process.env.WATCHNOC_API_KEY ?? 'pk_test' });
 

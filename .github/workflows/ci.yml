@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Lint, build, and test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+    steps:
+      # No push happens in this job, so there's nothing that needs
+      # checkout's persisted credentials.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # @watchnoc/proto is a git dependency (see package.json) — this step
+      # assumes it's a public repo. If it's still private when this runs,
+      # `npm ci` fails the same way `go build` did in watchnoc-core's CI
+      # before that repo's proto access was fixed: no credentials, no
+      # access. There's no token workaround wired up here on purpose —
+      # a public SDK's `npm install` has to work for every consumer with
+      # zero configuration, so the fix is keeping proto public, not adding
+      # a CI-only credential that a real customer's `npm install` wouldn't
+      # have either.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck examples
+        run: npm run typecheck:examples
+
+      - name: Test
+        run: npm test

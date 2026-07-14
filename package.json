@@ -3,6 +3,30 @@
   "version": "0.1.0",
   "description": "Watchnoc observability SDK for Node.js",
   "type": "module",
+  "license": "MIT",
+  "author": "Watchnoc",
+  "homepage": "https://github.com/watchnoc/node#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/watchnoc/node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/watchnoc/node/issues"
+  },
+  "keywords": [
+    "watchnoc",
+    "observability",
+    "logging",
+    "apm",
+    "error-tracking",
+    "tracing",
+    "monitoring",
+    "nodejs",
+    "sdk"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
@@ -15,7 +39,8 @@
   },
   "files": [
     "dist",
-    "proto"
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build:esm": "tsc -p tsconfig.build.json",
@@ -24,7 +49,8 @@
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
-    "prepublishOnly": "npm run build && npm test"
+    "typecheck:examples": "tsc -p tsconfig.examples.json",
+    "prepublishOnly": "npm run build && npm run typecheck:examples && npm test"
   },
   "engines": {
     "node": ">=18"
