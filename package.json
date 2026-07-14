@@ -5,13 +5,13 @@
   "type": "module",
   "license": "MIT",
   "author": "Watchnoc",
-  "homepage": "https://github.com/watchnoc/node#readme",
+  "homepage": "https://github.com/watchnoc/node-sdk#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/watchnoc/node.git"
+    "url": "git+https://github.com/watchnoc/node-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/watchnoc/node/issues"
+    "url": "https://github.com/watchnoc/node-sdk/issues"
   },
   "keywords": [
     "watchnoc",
